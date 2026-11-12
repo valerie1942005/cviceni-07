@@ -7,22 +7,23 @@ import skimage
 
 plt.close('all')
 
+# =============================================================================
 # Ukol 1
 # =============================================================================
 # Nactete obraz 'texture.png' a prevedte jej na sedotonovy. Zobrazte si jej i s jeho histogramem.
 # Transformujte originalni obraz na parametricky obraz:
-#       Připravte novou prázdnou výstupní proměnnou o stejné velikosti jako je vstupní obraz a s datovým typem float. 
-#       Pomocí dvou vnořených for cyklů projděte celý obraz a vybírejte submatice o velikosti 9x9 px. Ze submatic vypočtěte parametr: 
-#           Směrodatné odchylky a uložte na odpovídající pozici ve výstupní matici 
+#       Připravte novou prázdnou výstupní proměnnou o stejné velikosti jako je vstupní obraz a s datovým typem float.
+#       Pomocí dvou vnořených for cyklů projděte celý obraz a vybírejte submatice o velikosti 9x9 px. Ze submatic vypočtěte parametr:
+#           Směrodatné odchylky a uložte na odpovídající pozici ve výstupní matici
 #           Rozsahu pomocí nelineárního rozsahového filtru, jehož principem je nalezení lokálního rozdílu mezi maximem a minimem v submatici.
 # Zobrazte parametrický obraz a jeho histogram
 # =============================================================================
-texture_img = imread("texture.png")
+texture_img = imread("data/texture.png")
 grayscale_texture_img = rgb2gray(texture_img)
 
 # definice velikosti obrazku a submatice:
 [rows, cols] = np.shape(grayscale_texture_img)
-size_submatice = ...
+size_submatice = 9
 size_pul_submatice = round(size_submatice/2)
 
 # vykresleni puvodniho obrazku a histogramu
@@ -31,7 +32,7 @@ plt.subplot(2,2,1)
 plt.imshow(grayscale_texture_img, cmap='gray')
 plt.axis('off')
 plt.subplot(2,2,2)
-plt.hist(grayscale_texture_img.ravel(), 256, [0, 1])
+plt.hist(grayscale_texture_img.ravel(), 256, range=[0, 1])
 plt.xlabel('Jas [-]')
 plt.ylabel('Cetnost [-]')
 plt.show()
@@ -48,8 +49,8 @@ area_cols = np.linspace(size_pul_submatice,cols-size_pul_submatice, cols-size_su
 for row in area_rows:
     for col in area_cols:
         local_area = grayscale_texture_img[row - size_pul_submatice:row + size_pul_submatice + 1, col - size_pul_submatice:col + size_pul_submatice + 1]
-        param_space_std[row,col] = ...
-        param_space_rozsah[row,col] = ...
+        param_space_std[row,col] = np.std(local_area)
+        param_space_rozsah[row,col] = np.max(local_area) - np.min(local_area)
 
 # param_space_std = param_space_std[size_pul_submatice:rows-size_pul_submatice, size_pul_submatice:cols-size_pul_submatice]
 # param_space_rozsah = param_space_rozsah[size_pul_submatice:rows-size_pul_submatice, size_pul_submatice:cols-size_pul_submatice]
@@ -83,11 +84,12 @@ plt.ylabel('Cetnost [-]')
 plt.show()
 
 
+# =============================================================================
 # Ukol 2
 # =============================================================================
 # Nactete obraz ‘monsters.png’ a prevedte jej na sedotonovy a zobrazte.
 # Vytvorte hrubou hranovou reprezentaci s vyuzitim první parcialni derivace:
-#   Vytvorte gradientní obraz 
+#   Vytvorte gradientní obraz
 #       Vypoctete prvni parcialni derivaci pomoci Sobelovy masky ve smeru x a y
 #       Vytvorte gradientni obraz pomoci vypoctu euklidovske vzdalenosti
 #   Gradientni obraz vhodne naprahujte a zobrazte
@@ -96,19 +98,20 @@ plt.show()
 sobel_maska_x = np.array([[-1,-2,-1],[0,0,0],[1,2,1]])
 sobel_maska_y = sobel_maska_x.T
 
-img_monsters = imread("monsters.png")
+img_monsters = imread("data/monsters.png")
 grayscale_img_monsters = rgb2gray(img_monsters)
 
 # vytvořte "gradientní obraz"
-gradient_x = ...
-gradient_y = ...
+gradient_x = convolve2d(grayscale_img_monsters, sobel_maska_x, mode='same')
+gradient_y = convolve2d(grayscale_img_monsters, sobel_maska_y, mode='same')
 
-gradient_obraz = ...
+gradient_obraz = np.hypot(gradient_x, gradient_y)
 
 # naprahujte "gradientni obraz":
+prah_gradient = 0.3
 gradient_obraz_prah = np.copy(gradient_obraz)
-gradient_obraz_prah[gradient_obraz_prah < ...] = ...
-gradient_obraz_prah[gradient_obraz_prah >= ...] = ...
+gradient_obraz_prah[gradient_obraz_prah < prah_gradient] = 0
+gradient_obraz_prah[gradient_obraz_prah >= prah_gradient] = 1
 
 # vykresleni:
 plt.figure()
@@ -133,10 +136,11 @@ plt.axis('off')
 plt.show()
 
 
+# =============================================================================
 # Ukol 3
 # =============================================================================
 # Vytvorte hrubou hranovou reprezentaci obrazu monsters s vyuzitim Laplacianu obrazu:
-#   Prozkoumejte prilozenou funkci 'zero_crossing_detection()' 
+#   Prozkoumejte prilozenou funkci 'zero_crossing_detection()'
 #   S vyuzitim funkce 'zero_crossing_detection()' vytvorte hrubou hranovou reprezentaci z Laplacianu
 # =============================================================================
 
@@ -151,6 +155,8 @@ def zero_crossing_detection(Laplacian_obraz, threshold):
             if (np.sum(aux_var) == 0):
                 continue
             aux_var = np.delete(aux_var, np.where(aux_var == 0))
+            if len(aux_var) == 0:
+                continue
             maximum = np.max(aux_var)
             minimum = np.min(aux_var)
             if minimum < 0 and maximum > 0:  # 1st condition
@@ -162,9 +168,10 @@ def zero_crossing_detection(Laplacian_obraz, threshold):
     return (RER2)
 
 Laplac_operator = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
-Laplacian_obraz = ...
+Laplacian_obraz = convolve2d(grayscale_img_monsters, Laplac_operator, mode='same')
 
-RER = ...
+prah_laplacian = 0.05
+RER = zero_crossing_detection(Laplacian_obraz, prah_laplacian)
 
 # vykresleni:
 plt.figure()
